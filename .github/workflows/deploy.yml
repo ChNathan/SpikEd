@@ -1,0 +1,37 @@
+name: Build & Deploy LMS
+
+on:
+  push:
+    branches: [ main ]           # trigger on pushes to main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1️⃣  Checkout your Flutter source
+      - uses: actions/checkout@v4
+
+      # 2️⃣  Load secrets from 1Password into env vars
+      - uses: 1Password/load-secrets-action@v2
+        with:
+          export-env: true                     # makes them $ENV variables
+          secrets-file-path: ".github/1password/secrets.yml"
+        env:
+          OP_CONNECT_TOKEN: ${{ secrets.OP_CONNECT_TOKEN }}
+          OP_CONNECT_HOST:  https://connect.1password.com   # hard‑code if using cloud
+
+      # 3️⃣  Install Flutter
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      # 4️⃣  Build the web bundle
+      - run: flutter build web --release
+
+      # 5️⃣  Deploy to Firebase Hosting using the env var from 1Password
+      - uses: FirebaseExtended/action-hosting-deploy@v1
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccountToken: ${{ env.FIREBASE_DEPLOY_TOKEN }}
+          channelId: live
