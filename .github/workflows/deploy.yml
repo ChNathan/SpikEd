@@ -1,37 +1,66 @@
-name: Build & Deploy LMS
+# .github/workflows/deploy.yml
+name: Build & Deploy LMS
 
 on:
   push:
-    branches: [ main ]           # trigger on pushes to main
+    branches: [ main ]          # run on every push to main
 
 jobs:
-  deploy:
+  build-deploy:
     runs-on: ubuntu-latest
 
+    # ------------------------------------------------------------
+    # 1️⃣  Checkout source
+    # ------------------------------------------------------------
     steps:
-      # 1️⃣  Checkout your Flutter source
-      - uses: actions/checkout@v4
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
-      # 2️⃣  Load secrets from 1Password into env vars
-      - uses: 1Password/load-secrets-action@v2
+      # ----------------------------------------------------------
+      # 2️⃣  Load secrets from 1Password → env vars
+      # ----------------------------------------------------------
+      - name: Load 1Password secrets
+        uses: 1Password/load-secrets-action@v2
         with:
-          export-env: true                     # makes them $ENV variables
-          secrets-file-path: ".github/1password/secrets.yml"
+          export-env: true                     # makes them $ENV vars
+          secrets-file-path: .github/1password/secrets.yml
         env:
           OP_CONNECT_TOKEN: ${{ secrets.OP_CONNECT_TOKEN }}
-          OP_CONNECT_HOST:  https://connect.1password.com   # hard‑code if using cloud
+          OP_CONNECT_HOST:  https://connect.1password.com   # or your Connect URL
 
-      # 3️⃣  Install Flutter
-      - uses: subosito/flutter-action@v2
+      # ----------------------------------------------------------
+      # 3️⃣  Install Flutter SDK
+      # ----------------------------------------------------------
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
         with:
           channel: stable
 
-      # 4️⃣  Build the web bundle
-      - run: flutter build web --release
+      # ----------------------------------------------------------
+      # 4️⃣  Build + (optional) tests
+      # ----------------------------------------------------------
+      - name: Fetch packages
+        run: flutter pub get
 
-      # 5️⃣  Deploy to Firebase Hosting using the env var from 1Password
-      - uses: FirebaseExtended/action-hosting-deploy@v1
+      - name: Run unit tests
+        run: flutter test
+
+      - name: Build web release
+        run: flutter build web --release
+
+      # ----------------------------------------------------------
+      # 5️⃣  Deploy to Firebase Hosting (preview channel)
+      # ----------------------------------------------------------
+      - name: Deploy to Firebase Hosting (staging)
+        uses: FirebaseExtended/action-hosting-deploy@v1
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccountToken: ${{ env.FIREBASE_DEPLOY_TOKEN }}
-          channelId: live
+          channelId: staging                   # preview URL
+          projectId: spike-education-ceb97
+          firebaseToolsVersion: 12.9.0         # pin for reproducibility
+        env:
+          # FIREBASE_DEPLOY_TOKEN comes from 1Password ➜ env var
+          FIREBASE_TOKEN: ${{ env.FIREBASE_DEPLOY_TOKEN }}
+
+      # Optional: add a separate job or manual workflow_dispatch
+      #           to promote channelId=live once you approve.
