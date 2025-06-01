@@ -1,66 +1,11 @@
-# .github/workflows/deploy.yml
-name: Build & Deploy LMS
-
-on:
-  push:
-    branches: [ main ]          # run on every push to main
-
-jobs:
-  build-deploy:
-    runs-on: ubuntu-latest
-
-    # ------------------------------------------------------------
-    # 1️⃣  Checkout source
-    # ------------------------------------------------------------
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-
-      # ----------------------------------------------------------
-      # 2️⃣  Load secrets from 1Password → env vars
-      # ----------------------------------------------------------
-      - name: Load 1Password secrets
-        uses: 1Password/load-secrets-action@v2
-        with:
-          export-env: true                     # makes them $ENV vars
-          secrets-file-path: .github/1password/secrets.yml
-        env:
-          OP_CONNECT_TOKEN: ${{ secrets.OP_CONNECT_TOKEN }}
-          OP_CONNECT_HOST:  https://connect.1password.com   # or your Connect URL
-
-      # ----------------------------------------------------------
-      # 3️⃣  Install Flutter SDK
-      # ----------------------------------------------------------
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-
-      # ----------------------------------------------------------
-      # 4️⃣  Build + (optional) tests
-      # ----------------------------------------------------------
-      - name: Fetch packages
-        run: flutter pub get
-
-      - name: Run unit tests
-        run: flutter test
-
-      - name: Build web release
-        run: flutter build web --release
-
-      # ----------------------------------------------------------
-      # 5️⃣  Deploy to Firebase Hosting (preview channel)
-      # ----------------------------------------------------------
-      - name: Deploy to Firebase Hosting (staging)
-        uses: FirebaseExtended/action-hosting-deploy@v1
-        with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          channelId: staging                   # preview URL
-          projectId: spike-education-ceb97
-          firebaseToolsVersion: 12.9.0         # pin for reproducibility
-        env:
-          # FIREBASE_DEPLOY_TOKEN comes from 1Password ➜ env var
-          FIREBASE_TOKEN: ${{ env.FIREBASE_DEPLOY_TOKEN }}
-
-      # Optional: add a separate job or manual workflow_dispatch
-      #           to promote channelId=live once you approve.
+# 5️⃣  Deploy to Firebase Hosting (preview channel)
+- name: Deploy to Firebase Hosting (staging)
+  uses: FirebaseExtended/action-hosting-deploy@v0   # ← change v1 → v0
+  with:
+    repoToken: ${{ secrets.GITHUB_TOKEN }}
+    channelId: staging
+    projectId: spike-education-ceb97
+    firebaseToolsVersion: 12.9.0       # optional pin
+  env:
+    # Provided by 1Password load‑secrets step
+    FIREBASE_TOKEN: ${{ env.FIREBASE_DEPLOY_TOKEN }}
