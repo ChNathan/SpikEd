@@ -1,11 +1,35 @@
-# 5️⃣  Deploy to Firebase Hosting (preview channel)
-- name: Deploy to Firebase Hosting (staging)
-  uses: FirebaseExtended/action-hosting-deploy@v0   # v0 is the latest major tag
-  with:
-    repoToken: ${{ secrets.GITHUB_TOKEN }}
-    channelId: staging
-    projectId: spike-education-ceb97
-    firebaseToolsVersion: 12.9.0        # optional pin
-  env:
-    # Provided by 1Password load‑secrets step
-    FIREBASE_TOKEN: ${{ env.FIREBASE_DEPLOY_TOKEN }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      # 2️⃣  Load secrets from 1Password
+      - name: Load 1Password secrets
+        uses: 1Password/load-secrets-action@v2
+        with:
+          export-env: true
+          secrets-file-path: .github/1password/secrets.yml
+        env:
+          OP_CONNECT_TOKEN: ${{ secrets.OP_CONNECT_TOKEN }}
+          OP_CONNECT_HOST:  https://connect.1password.com
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Run tests
+        run: flutter test
+
+      - name: Build web release
+        run: flutter build web --release
+
+      # 5️⃣  Deploy to Firebase Hosting (preview channel)
+      - name: Deploy to Firebase Hosting (staging)
+        uses: FirebaseExtended/action-hosting-deploy@v0    # v0 is latest
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          channelId: staging
+          projectId: spike-education-ceb97
+          firebaseToolsVersion: 12.9.0
+        env:
+          FIREBASE_TOKEN: ${{ env.FIREBASE_DEPLOY_TOKEN }}
