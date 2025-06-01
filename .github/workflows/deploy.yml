@@ -1,4 +1,17 @@
+# .github/workflows/deploy.yml
+name: Build & Deploy LMS
+
+on:
+  push:
+    branches: [ main ]          # run on every push to main
+  workflow_dispatch:            # ↩ optional manual run button
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+
     steps:
+      # 1️⃣  Checkout code
       - name: Checkout repo
         uses: actions/checkout@v4
 
@@ -12,24 +25,27 @@
           OP_CONNECT_TOKEN: ${{ secrets.OP_CONNECT_TOKEN }}
           OP_CONNECT_HOST:  https://connect.1password.com
 
+      # 3️⃣  Set up Flutter
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
 
-      - name: Run tests
+      # 4️⃣  Install deps & run tests
+      - name: Fetch packages
+        run: flutter pub get
+
+      - name: Run unit tests
         run: flutter test
 
+      # 5️⃣  Build release bundle
       - name: Build web release
         run: flutter build web --release
 
-      # 5️⃣  Deploy to Firebase Hosting (preview channel)
+      # 6️⃣  Deploy to Firebase Hosting (preview channel)
       - name: Deploy to Firebase Hosting (staging)
-        uses: FirebaseExtended/action-hosting-deploy@v0    # v0 is latest
+        uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           channelId: staging
-          projectId: spike-education-ceb97
-          firebaseToolsVersion: 12.9.0
-        env:
-          FIREBASE_TOKEN: ${{ env.FIREBASE_DEPLOY_TOKEN }}
+          projectId: spike-educati
