@@ -1,11 +1,11 @@
 # 5️⃣  Deploy to Firebase Hosting (preview channel)
 - name: Deploy to Firebase Hosting (staging)
-  uses: FirebaseExtended/action-hosting-deploy@v0   # ← change v1 → v0
+  uses: FirebaseExtended/action-hosting-deploy@v0   # v0 is the latest major tag
   with:
     repoToken: ${{ secrets.GITHUB_TOKEN }}
     channelId: staging
     projectId: spike-education-ceb97
-    firebaseToolsVersion: 12.9.0       # optional pin
+    firebaseToolsVersion: 12.9.0        # optional pin
   env:
     # Provided by 1Password load‑secrets step
     FIREBASE_TOKEN: ${{ env.FIREBASE_DEPLOY_TOKEN }}
